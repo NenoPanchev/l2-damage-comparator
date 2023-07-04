@@ -152,6 +152,7 @@ public class Main {
     }
 
     private static Runnable processImage(Mat image, LocalTime now) throws TesseractException {
+        System.out.println(Thread.currentThread().getName());
         image = cropLastTwoRowsFromImage(image);
 //        viewImage(image);
         image = resizeImage(image, 2);
