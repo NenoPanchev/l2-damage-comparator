@@ -2,12 +2,17 @@ package org.example;
 
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
-import org.opencv.core.*;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.core.Size;
 import org.opencv.highgui.HighGui;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
-import java.awt.*;
+import java.awt.AWTException;
+import java.awt.Rectangle;
+import java.awt.Robot;
 import java.awt.image.BufferedImage;
 
 import java.io.IOException;
@@ -17,12 +22,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import static org.example.Utils.*;
 
 public class Main {
     private static final String TESSERACT_DIR_PATH = "C:\\Program Files\\Tesseract-OCR\\tessdata";
+    private static final String CRITICAL_HIT = "Critical hit!";
+    private static final String MISS = "miss";
+    private static final String DAMAGE_PREFIX = "You hit for ";
+    private static final String DAMAGE_POSTFIX = " damage.";
     static Tesseract tesseract = new Tesseract();
     static List<Hit> hits = new ArrayList<>();
     public static void main(String[] args) throws AWTException, TesseractException, IOException {
@@ -161,9 +169,9 @@ public class Main {
         String result = tesseract.doOCR(bufferedImage);
         System.out.println(result);
         String[] rows = result.split("\n");
-        boolean crit = rows[0].contains("Critical hit!");
-        boolean miss = rows[1].contains("miss");
-        String damageString = rows[1].replace("You hit for ", "").replace(" damage.", "");
+        boolean crit = rows[0].contains(CRITICAL_HIT);
+        boolean miss = rows[1].contains(MISS);
+        String damageString = rows[1].replace(DAMAGE_PREFIX, "").replace(DAMAGE_POSTFIX, "");
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
