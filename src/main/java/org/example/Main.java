@@ -20,6 +20,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -31,26 +32,29 @@ public class Main {
     private static final String MISS = "miss";
     private static final String DAMAGE_PREFIX = "You hit for ";
     private static final String DAMAGE_POSTFIX = " damage.";
+    private static final String NON_NUMERIC = "\\D";
+    private static final int MINUTES_TO_RUN = 10;
+    private static final long NANOSEC_PER_SEC = 1000l*1000*1000;
     static Tesseract tesseract = new Tesseract();
     static List<Hit> hits = new ArrayList<>();
     public static void main(String[] args) throws AWTException, TesseractException, IOException {
         nu.pattern.OpenCV.loadLocally();
         tesseract.setDatapath(TESSERACT_DIR_PATH);
-        ExecutorService executorService = Executors.newFixedThreadPool(4);
+//        ExecutorService executorService = Executors.newFixedThreadPool(4);
 
         Robot robot = new Robot();
 
         // Define the top-left and bottom-right coordinates of the desired region
         int startX = 22;
-        int startY = 1105;
-        int width = 170;
-        int height = 80;
+        int startY = 1072;
+        int width = 120;
+        int height = 102;
         Rectangle screenRect = new Rectangle(startX, startY, width, height);
 
         Mat previous = null;
 
-        int counter = 0;
-        while (true) {
+        long startTime = System.nanoTime();
+        while ((System.nanoTime()-startTime)< MINUTES_TO_RUN*60*NANOSEC_PER_SEC){
 
             BufferedImage screenCapture = robot.createScreenCapture(screenRect);
             LocalTime now = LocalTime.now();
@@ -65,12 +69,8 @@ public class Main {
             }
             if (!isSame(previous, mat)) {
                 previous = mat;
-                executorService.submit(processImage(previous, now));
-                if (counter == 100) {
-                    break;
-                }
-                counter++;
-//                processImage(previous);
+//                executorService.submit(processImage(previous, now));
+                processImage(previous, now);
             }
 
 
@@ -86,7 +86,7 @@ public class Main {
     }
 
     private static void showFinalInfo(List<Hit> hits) {
-        double misses = 0;
+//        double misses = 0;
         double criticals = 0;
         List<Double> critDamageList = new ArrayList<>();
         List<Double> normalDamageList = new ArrayList<>();
@@ -96,9 +96,9 @@ public class Main {
         List<Double> attackTimes = new ArrayList<>();
         for (int i = 0; i < hits.size(); i++) {
             Hit hit = hits.get(i);
-            if (hit.isMiss()) {
-                misses++;
-            }
+//            if (hit.isMiss()) {
+//                misses++;
+//            }
             if (hit.isCritical()) {
                 criticals++;
                 totalCritDmg += hit.getDamage();
@@ -112,7 +112,8 @@ public class Main {
             }
         }
 
-        System.out.printf("Misses: %.2f%%%n", misses / hits.size() * 100);
+//        System.out.printf("Misses: %.2f%%%n", misses / hits.size() * 100);
+        System.out.printf("Total hits for %d minutes: %d%n", MINUTES_TO_RUN, hits.size());
         System.out.printf("Criticals: %.2f%%%n", criticals / hits.size() * 100);
         System.out.printf("Total damage: %.2f dmg%n", totalCritDmg + totalNormalDmg);
         System.out.printf("Average normal hit: %.2f dmg%n", totalNormalDmg / normalDamageList.size());
@@ -152,7 +153,7 @@ public class Main {
     }
 
     private static Runnable processImage(Mat image, LocalTime now) throws TesseractException {
-        System.out.println(Thread.currentThread().getName());
+//        System.out.println(Thread.currentThread().getName());
         image = cropLastTwoRowsFromImage(image);
 //        viewImage(image);
         image = resizeImage(image, 2);
@@ -162,17 +163,14 @@ public class Main {
         Imgproc.threshold(image, image, 127, 255, Imgproc.THRESH_BINARY | Imgproc.THRESH_OTSU);
 //        viewImage(image);
         // Perform noise removal
-        Imgproc.blur(image, image, new Size(4, 4));
+        Imgproc.blur(image, image, new Size(2, 2));
 //        viewImage(image);
         BufferedImage bufferedImage = matToBufferedImage(image);
         tesseract.setLanguage("eng");
         tesseract.setTessVariable("user_defined_dpi", "150");
         String result = tesseract.doOCR(bufferedImage);
         System.out.println(result);
-        String[] rows = result.split("\n");
-        boolean crit = rows[0].contains(CRITICAL_HIT);
-        boolean miss = rows[1].contains(MISS);
-        String damageString = rows[1].replace(DAMAGE_PREFIX, "").replace(DAMAGE_POSTFIX, "");
+        String damageString = result.replaceAll(NON_NUMERIC, "");
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -180,13 +178,22 @@ public class Main {
             }
         };
 
-        Integer dmg = -1;
+        Integer dmg = 1094;
+        Random rn = new Random();
+        int answer = rn.nextInt(10) + 1;
+        if (answer >= 7) {
+            dmg = 6438;
+        }
         try {
             dmg = Integer.parseInt(damageString);
         } catch (Exception e) {
 
         }
-        Hit hit = new Hit(dmg, now, crit, miss);
+        boolean crit = false;
+        if (dmg > 3000) {
+            crit = true;
+        }
+        Hit hit = new Hit(dmg, now, crit);
         if (dmg != null) {
             hits.add(hit);
         }

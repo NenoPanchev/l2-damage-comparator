@@ -8,11 +8,10 @@ public class Hit {
     private boolean critical;
     private boolean miss;
 
-    public Hit(int damage, LocalTime timeOfHit, boolean critical, boolean miss) {
+    public Hit(int damage, LocalTime timeOfHit, boolean critical) {
         this.damage = damage;
         this.timeOfHit = timeOfHit;
         this.critical = critical;
-        this.miss = miss;
     }
 
     public int getDamage() {

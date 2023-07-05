@@ -85,7 +85,7 @@ public class Utils {
     }
 
     public static Mat cropLastTwoRowsFromImage(Mat image) {
-        Rect roi = new Rect(0, image.height() - 32, image.width(), 32);
+        Rect roi = new Rect(0, image.height() - 16, image.width(), 16);
         return new Mat(image, roi);
     }
 }
