@@ -28,12 +28,13 @@ import static org.example.Utils.*;
 
 public class Main {
     private static final String TESSERACT_DIR_PATH = "C:\\Program Files\\Tesseract-OCR\\tessdata";
-    private static final String CRITICAL_HIT = "Critical hit!";
+    private static final String CRITICAL_HIT = "critical hit";
+    private static final String NORMAL_HIT = "normal hit";
     private static final String MISS = "miss";
     private static final String DAMAGE_PREFIX = "You hit for ";
     private static final String DAMAGE_POSTFIX = " damage.";
     private static final String NON_NUMERIC = "\\D";
-    private static final int MINUTES_TO_RUN = 10;
+    private static final int MINUTES_TO_RUN = 2;
     private static final long NANOSEC_PER_SEC = 1000l*1000*1000;
     static Tesseract tesseract = new Tesseract();
     static List<Hit> hits = new ArrayList<>();
@@ -93,12 +94,10 @@ public class Main {
         double totalCritDmg = 0;
         double totalNormalDmg = 0;
         int totalDmg = 0;
-        List<Double> attackTimes = new ArrayList<>();
+//        List<Double> attackTimes = new ArrayList<>();
         for (int i = 0; i < hits.size(); i++) {
             Hit hit = hits.get(i);
-//            if (hit.isMiss()) {
-//                misses++;
-//            }
+
             if (hit.isCritical()) {
                 criticals++;
                 totalCritDmg += hit.getDamage();
@@ -107,18 +106,21 @@ public class Main {
                 totalNormalDmg += hit.getDamage();
                 normalDamageList.add((double) hit.getDamage());
             }
-            if (i != 0) {
-                attackTimes.add(ChronoUnit.MILLIS.between(hits.get(i - 1).getTimeOfHit(), hits.get(i).getTimeOfHit()) / 1000.0);
-            }
+//            if (i != 0) {
+//                attackTimes.add(ChronoUnit.MILLIS.between(hits.get(i - 1).getTimeOfHit(), hits.get(i).getTimeOfHit()) / 1000.0);
+//            }
         }
 
 //        System.out.printf("Misses: %.2f%%%n", misses / hits.size() * 100);
         System.out.printf("Total hits for %d minutes: %d%n", MINUTES_TO_RUN, hits.size());
-        System.out.printf("Criticals: %.2f%%%n", criticals / hits.size() * 100);
+        System.out.printf("Critical hits: %.2f%%%n", criticals / hits.size() * 100);
         System.out.printf("Total damage: %.2f dmg%n", totalCritDmg + totalNormalDmg);
         System.out.printf("Average normal hit: %.2f dmg%n", totalNormalDmg / normalDamageList.size());
+        printSpreadInfo(normalDamageList, NORMAL_HIT);
+        printSpreadInfo(critDamageList, CRITICAL_HIT);
         System.out.printf("Average critical hit: %.2f dmg%n", totalCritDmg / critDamageList.size());
-        System.out.printf("Average hit time: %.2fs%n", attackTimes.stream().mapToDouble(i->i).average().getAsDouble());
+        System.out.printf("Seconds per hit: %.2fs%n", hits.size() / (MINUTES_TO_RUN * 60.0));
+        System.out.printf("Hits per second: %.2fs%n", (MINUTES_TO_RUN * 60.0) / hits.size());
     }
 
     private static BufferedImage convertToCompatibleType(BufferedImage image) {
@@ -201,4 +203,20 @@ public class Main {
         return runnable;
     }
 
+    private static void printSpreadInfo(List<Double> damageList, String typeHit) {
+        double min = damageList
+                .stream()
+                .mapToDouble(dmg -> dmg)
+                .min()
+                .orElse(0.0);
+        double max = damageList
+                .stream()
+                .mapToDouble(dmg -> dmg)
+                .max()
+                .orElse(0.0);
+        System.out.printf("Lowest %s: %.2f%n", typeHit, min);
+        System.out.printf("Highest %s: %.2f%n", typeHit, max);
+        double spreadPecentage =  (max - min) / max * 100;
+        System.out.printf("Spread of %s: %.2f%n", typeHit, spreadPecentage);
+    }
 }
